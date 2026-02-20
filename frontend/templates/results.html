@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results - Resume ATS Optimizer</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <h1>Resume ATS</h1>
+            <div class="nav-links">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/upload">New Analysis</a>
+                <button onclick="login()" class="btn btn-small">Login</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Guest limit banner (shown only for guest users) -->
+        <div id="guestBanner"
+            style="display:none; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border-radius: 10px; padding: 12px 20px; margin: 16px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <span id="guestBannerText" style="font-weight:600;">⚡ Guest Mode: You have free analyses remaining.</span>
+            <a href="/"
+                style="background:#fff; color:#d97706; border-radius:6px; padding:6px 16px; font-weight:700; text-decoration:none; white-space:nowrap;">Sign
+                Up Free →</a>
+        </div>
+
+        <div class="results-page">
+            <div class="results-header">
+                <h1>Analysis Results</h1>
+                <div class="job-info" id="jobInfo">
+                    <h3 id="jobTitle"></h3>
+                    <p id="companyName"></p>
+                </div>
+            </div>
+
+
+            <!-- Match Score -->
+            <div class="card score-card">
+                <h2>Match Score</h2>
+                <div class="score-display">
+                    <div class="score-circle">
+                        <div class="score-number" id="matchScore">-</div>
+                        <div class="score-label">/10</div>
+                    </div>
+                    <div class="score-details">
+                        <div class="score-bar">
+                            <div class="score-fill" id="scoreFill"></div>
+                        </div>
+                        <p id="scoreSummary"></p>
+                    </div>
+                </div>
+                <div class="score-reasoning" id="scoreReasoning"></div>
+            </div>
+
+            <!-- Strengths & Gaps -->
+            <div class="grid-2">
+                <div class="card">
+                    <h2>✅ Strengths</h2>
+                    <ul id="strengthsList"></ul>
+                </div>
+                <div class="card">
+                    <h2>❌ Gaps</h2>
+                    <ul id="gapsList"></ul>
+                </div>
+            </div>
+
+            <!-- Missing Keywords -->
+            <div class="card">
+                <h2>🔑 Missing Keywords</h2>
+                <p class="subtitle">Add these keywords to improve your match</p>
+                <div class="keywords-grid" id="keywordsList"></div>
+            </div>
+
+            <!-- ATS Compatibility -->
+            <div class="card ats-card">
+                <h2>🤖 ATS Compatibility</h2>
+                <div class="ats-score">
+                    <div class="circular-progress" id="atsProgress">
+                        <svg viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" class="progress-bg"></circle>
+                            <circle cx="50" cy="50" r="45" class="progress-fill" id="atsCircle"></circle>
+                        </svg>
+                        <div class="progress-text">
+                            <span id="atsScore">-</span>%
+                        </div>
+                    </div>
+                </div>
+
+                <div id="atsIssues" class="ats-issues"></div>
+                <div id="atsRecommendations" class="ats-recommendations"></div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card actions-card">
+                <h2>Next Steps</h2>
+                <div class="actions-grid">
+                    <button onclick="startOptimization()" class="btn btn-primary">
+                        📝 Optimize Resume
+                    </button>
+
+                    <a href="/upload" class="btn btn-secondary">
+                        🆕 New Analysis
+                    </a>
+                </div>
+            </div>
+
+            <!-- Rewrite Section -->
+            <div id="rewriteSection" class="card" style="display: none;">
+                <h2>✨ Optimized Experience</h2>
+                <p class="subtitle">AI-enhanced version with keywords and achievements</p>
+
+                <div id="loadingOptimization" style="display: none; text-align: center; padding: 20px;">
+                    <div class="loader"></div>
+                    <p>Optimizing your resume... this may take a few seconds.</p>
+                </div>
+
+                <div id="optimizationResults" style="display: none;">
+                    <div class="optimized-text" id="optimizedText"></div>
+
+                    <div class="actions-grid" style="margin-top: 20px;">
+                        <button onclick="downloadOptimizedPDF()" class="btn btn-primary">
+                            ⬇️ Download PDF
+                        </button>
+                        <button onclick="copyToClipboard()" class="btn btn-secondary">
+                            📋 Copy Text
+                        </button>
+                    </div>
+                </div>
+
+                <div id="manualInputSection" style="display: none; margin-top: 20px;">
+                    <p class="warning-text">⚠️ We couldn't auto-extract your experience section. Please paste it below:
+                    </p>
+                    <textarea id="experienceText" rows="10" placeholder="Paste your work experience here..."></textarea>
+                    <button onclick="submitManualOptimization()" class="btn btn-primary"
+                        style="margin-top: 10px;">Optimize Helper</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

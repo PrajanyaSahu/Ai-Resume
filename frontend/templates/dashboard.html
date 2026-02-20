@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Resume ATS Optimizer</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <h1>Resume ATS</h1>
+            <div class="nav-links">
+                <a href="/dashboard" class="active">Dashboard</a>
+                <span id="userEmail"></span>
+                <button onclick="logout()" class="btn btn-small">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard">
+            <div class="welcome-section">
+                <h1>Welcome, <span id="userName">User</span>!</h1>
+                <p>Track your resume analyses and optimize for success</p>
+            </div>
+
+            <!-- Usage Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <h3 id="analysesUsed">-</h3>
+                        <p>Analyses Used</p>
+                        <small id="analysesRemaining">- remaining</small>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">✏️</div>
+                    <div class="stat-content">
+                        <h3 id="rewritesUsed">-</h3>
+                        <p>Rewrites Used</p>
+                        <small id="rewritesRemaining">- remaining</small>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-content">
+                        <h3 id="resetDays">-</h3>
+                        <p>Days Until Reset</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action -->
+            <div class="quick-action">
+                <a href="/upload" class="btn btn-primary btn-large">
+                    🚀 New Analysis
+                </a>
+            </div>
+
+            <!-- Recent Analyses -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recent Analyses</h2>
+                </div>
+                <div id="recentAnalyses" class="analyses-list">
+                    <p class="loading">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

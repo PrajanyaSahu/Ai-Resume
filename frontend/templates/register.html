@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Resume ATS Optimizer</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="logo">
+                <h1>Resume ATS</h1>
+                <p>Optimize your resume for success</p>
+            </div>
+
+            <form id="registerForm" class="auth-form">
+                <h2>Create Account</h2>
+
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required minlength="8">
+                    <small>Minimum 8 characters</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="registerBtn">
+                    <span class="btn-text">Register</span>
+                    <span class="btn-loading" style="display: none;">Creating account...</span>
+                </button>
+
+                <p class="auth-switch">
+                    Already have an account? <a href="/login">Login</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/auth.js"></script>
+</body>
+
+</html>

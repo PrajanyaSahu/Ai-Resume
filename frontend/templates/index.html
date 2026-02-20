@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume ATS Optimizer - Land Your Dream Job</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="landing-page">
+        <nav class="landing-nav">
+            <h1>Resume ATS</h1>
+            <div>
+                <a href="/login" class="btn btn-secondary">Login</a>
+                <a href="/register" class="btn btn-primary">Get Started</a>
+            </div>
+        </nav>
+
+        <header class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">Optimize Your Resume.<br>Land Your Dream Job.</h1>
+                <p class="hero-subtitle">AI-powered resume analysis that helps you pass ATS systems and impress
+                    recruiters</p>
+                <div class="hero-cta">
+                    <a href="/upload" class="btn btn-primary btn-large">Start Free Analysis</a>
+                    <p class="cta-note">2 free analyses • No credit card required</p>
+                </div>
+            </div>
+        </header>
+
+        <section class="features">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Match Score</h3>
+                    <p>Get an AI-powered 1-10 match score with detailed reasoning on how well your resume fits the job
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔑</div>
+                    <h3>Keyword Analysis</h3>
+                    <p>Discover the top 10 missing keywords from job descriptions to improve your chances</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>ATS Compatibility</h3>
+                    <p>Comprehensive scan for formatting issues, fonts, and parsing problems that block ATS systems</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">✨</div>
+                    <h3>AI Rewriting</h3>
+                    <p>Transform your experience into achievement-based bullets that showcase measurable results</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Detailed Insights</h3>
+                    <p>Understand your strengths and gaps with actionable recommendations</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Instant Results</h3>
+                    <p>Get your complete analysis in seconds, powered by Claude AI</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="how-it-works">
+            <h2>How It Works</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Upload Resume</h3>
+                    <p>Upload your resume (PDF or DOCX)</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Paste Job Description</h3>
+                    <p>Add the job posting you're targeting</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Get Analysis</h3>
+                    <p>Receive instant AI-powered insights</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Optimize & Apply</h3>
+                    <p>Improve your resume and apply with confidence</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="landing-footer">
+            <p>© 2024 Resume ATS Optimizer. Powered by Claude AI.</p>
+            <div>
+                <a href="/login">Login</a>
+                <a href="/register">Register</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Check if user is already logged in
+        const token = localStorage.getItem('token');
+        if (token) {
+            window.location.href = '/dashboard';
+        }
+    </script>
+</body>
+
+</html>

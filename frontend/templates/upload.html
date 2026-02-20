@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Resume - Resume ATS Optimizer</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/pages.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <h1>Resume ATS</h1>
+            <div class="nav-links">
+                <a href="/dashboard">Dashboard</a>
+                <span id="userEmail"></span>
+                <button onclick="login()" class="btn btn-small">Login</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="upload-page">
+            <h1>Analyze Your Resume</h1>
+            <p class="subtitle">Upload your resume and job description to get started</p>
+
+            <div id="errorMessage" class="error-message" style="display:none;"></div>
+
+            <form id="uploadForm" class="upload-form">
+
+                <!-- Resume Upload -->
+                <div class="form-section">
+                    <h3>1. Upload Resume</h3>
+                    <div class="file-upload" id="fileUploadArea">
+                        <input type="file" id="resumeFile" name="resume" accept=".pdf,.docx" required hidden>
+                        <div class="upload-placeholder" onclick="document.getElementById('resumeFile').click()">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <p>Click to upload or drag and drop</p>
+                            <small>PDF or DOCX (Max 10MB)</small>
+                        </div>
+                        <div class="file-info" id="fileInfo" style="display:none;">
+                            <p id="fileName"></p>
+                            <button type="button" onclick="removeFile()" class="btn-remove">✕ Remove</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job Details -->
+                <div class="form-section">
+                    <h3>2. Job Details</h3>
+                    <div class="form-group">
+                        <label for="jobTitle">Job Title *</label>
+                        <input type="text" id="jobTitle" name="job_title" placeholder="e.g., Senior Software Engineer"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label for="companyName">Company Name</label>
+                        <input type="text" id="companyName" name="company_name" placeholder="e.g., Google">
+                    </div>
+                    <div class="form-group">
+                        <label for="jobDescription">Job Description *</label>
+                        <textarea id="jobDescription" name="job_description" rows="10"
+                            placeholder="Paste the full job description here..." required></textarea>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-large" id="analyzeBtn">
+                        <span class="btn-text">🚀 Analyze Resume</span>
+                        <span class="btn-loading" style="display:none;">
+                            <span class="spinner"></span> Analyzing...
+                        </span>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>
