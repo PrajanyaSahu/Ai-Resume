@@ -294,11 +294,13 @@ function displayResults(data) {
         const bannerText = document.getElementById('guestBannerText');
         if (banner && bannerText) {
             const remaining = data.usage.analyses_remaining;
+            const dlRemaining = data.usage.downloads_remaining ?? 1;
             if (remaining === 0) {
                 banner.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
                 bannerText.textContent = '🚫 You\'ve used all your free analyses for today. Sign up for unlimited access!';
             } else {
-                bannerText.textContent = `⚡ Guest Mode: ${remaining} free analysis${remaining === 1 ? '' : 'es'} remaining today.`;
+                const dlNote = dlRemaining === 0 ? ' · 0 downloads left' : ` · ${dlRemaining} free PDF download${dlRemaining === 1 ? '' : 's'} left`;
+                bannerText.textContent = `⚡ Guest Mode: ${remaining} free analysis${remaining === 1 ? '' : 'es'} remaining today${dlNote}.`;
             }
             banner.style.display = 'flex';
         }
@@ -309,9 +311,8 @@ function startOptimization() {
     document.getElementById('rewriteSection').style.display = 'block';
     document.getElementById('rewriteSection').scrollIntoView({ behavior: 'smooth' });
 
-    // Hide results and manual input initially
+    // Hide results initially
     document.getElementById('optimizationResults').style.display = 'none';
-    document.getElementById('manualInputSection').style.display = 'none';
 
     // Show loading
     document.getElementById('loadingOptimization').style.display = 'block';
@@ -333,6 +334,7 @@ async function performOptimization(manualText = null) {
         analysis_id: window.currentAnalysisId
     };
 
+    // manualText kept for API compatibility but UI never sends it anymore
     if (manualText) {
         body.experience_text = manualText;
     }
@@ -349,22 +351,15 @@ async function performOptimization(manualText = null) {
         document.getElementById('loadingOptimization').style.display = 'none';
 
         if (response.ok) {
-            // Success
+            // Store optimized text for download
             window.optimizedText = result.data.rewritten;
 
             // Format for display (preserve newlines)
             document.getElementById('optimizedText').textContent = result.data.rewritten;
 
             document.getElementById('optimizationResults').style.display = 'block';
-            document.getElementById('manualInputSection').style.display = 'none';
         } else {
-            // Error
-            if (response.status === 400 && result.detail.includes('Experience text is required')) {
-                // Auto-extraction failed, show manual input
-                document.getElementById('manualInputSection').style.display = 'block';
-            } else {
-                alert(result.detail || 'Optimization failed');
-            }
+            alert(result.detail || 'Optimization failed. Please try again.');
         }
     } catch (error) {
         document.getElementById('loadingOptimization').style.display = 'none';
@@ -372,19 +367,6 @@ async function performOptimization(manualText = null) {
     }
 }
 
-function submitManualOptimization() {
-    const text = document.getElementById('experienceText').value;
-    if (!text) {
-        alert('Please paste your experience section.');
-        return;
-    }
-
-    // Show loading again
-    document.getElementById('loadingOptimization').style.display = 'block';
-    document.getElementById('manualInputSection').style.display = 'none';
-
-    performOptimization(text);
-}
 
 async function downloadOptimizedPDF() {
     const token = localStorage.getItem('token');
@@ -415,6 +397,21 @@ async function downloadOptimizedPDF() {
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
+        } else if (response.status === 429) {
+            // Guest download limit reached
+            const error = await response.json();
+            const actionsGrid = document.querySelector('#optimizationResults .actions-grid');
+            if (actionsGrid) {
+                actionsGrid.innerHTML = `
+                    <div style="background: linear-gradient(135deg,#ef4444,#dc2626); color:#fff; border-radius:10px; padding:14px 18px; width:100%; text-align:center;">
+                        <strong>🚫 Download limit reached!</strong><br>
+                        <span style="font-size:0.92em;">${error.detail || 'You have used your 1 free PDF download.'}</span><br>
+                        <a href="/" style="display:inline-block; margin-top:10px; background:#fff; color:#dc2626; border-radius:6px; padding:7px 18px; font-weight:700; text-decoration:none;">
+                            Create a Free Account →
+                        </a>
+                    </div>
+                `;
+            }
         } else {
             const error = await response.json();
             alert('Download failed: ' + (error.detail || 'Unknown error'));

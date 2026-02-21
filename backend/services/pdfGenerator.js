@@ -1,355 +1,290 @@
-// // services/pdfGenerator.js
-// // Generate ATS-friendly PDF resumes
-
-// const PDFDocument = require('pdfkit');
-// const fs = require('fs');
-
-// /**
-//  * Generate a clean, ATS-friendly PDF
-//  * @param {Object} resumeData - Original resume data (metadata, sections)
-//  * @param {String} optimizedExperience - The optimized experience text
-//  * @returns {PDFDocument} - The PDF document stream
-//  */
-// function generateResumePDF(resumeData, optimizedExperience) {
-//     const doc = new PDFDocument({ margin: 50, font: 'Helvetica' });
-
-//     const metadata = resumeData.metadata || {};
-//     const sections = resumeData.sections || {};
-
-//     // -- HELPER FUNCTIONS --
-//     const printSectionHeader = (title) => {
-//         doc.moveDown(1);
-//         doc.fontSize(12).font('Helvetica-Bold').text(title.toUpperCase(), { align: 'left' });
-//         doc.strokeColor('#333333').lineWidth(1)
-//             .moveTo(doc.x, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
-//         doc.moveDown(0.5);
-//         doc.font('Helvetica').fontSize(10);
-//     };
-
-//     const printBodyText = (text) => {
-//         if (!text) return;
-//         const lines = text.split('\n');
-//         lines.forEach(line => {
-//             const trimmed = line.trim();
-//             if (!trimmed) return;
-
-//             // Check for bullet points
-//             if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
-//                 // Remove the bullet char and render as list item
-//                 const content = trimmed.substring(1).trim();
-//                 doc.text(`• ${content}`, { indent: 10, align: 'justify' });
-//             } else {
-//                 doc.text(trimmed, { align: 'justify' });
-//             }
-//             doc.moveDown(0.2);
-//         });
-//         doc.moveDown(0.5);
-//     };
-
-//     // -- HEADER (Contact Info) --
-//     let name = "Candidate Name";
-//     // Try to find name in metadata if parser supports it, or first line of raw text? 
-//     // For now, we'll use a generic placeholder or the email prefix if available
-//     if (metadata.email) {
-//         name = metadata.email.split('@')[0].replace(/[._]/g, ' ').toUpperCase();
-//     }
-
-//     doc.fontSize(18).font('Helvetica-Bold').text(name, { align: 'center' });
-//     doc.moveDown(0.3);
-
-//     const contactLines = [];
-//     if (metadata.email) contactLines.push(metadata.email);
-//     if (metadata.phone) contactLines.push(metadata.phone);
-//     if (metadata.linkedin) contactLines.push(metadata.linkedin);
-
-//     doc.fontSize(10).font('Helvetica').text(contactLines.join('  |  '), { align: 'center' });
-//     doc.moveDown(1.5);
-
-//     // -- SUMMARY --
-//     if (sections.summary) {
-//         printSectionHeader('Professional Summary');
-//         printBodyText(sections.summary);
-//     }
-
-//     // -- EXPERIENCE (Optimized) --
-//     printSectionHeader('Professional Experience');
-//     const xpText = optimizedExperience || sections.experience || 'No experience section found.';
-//     printBodyText(xpText);
-
-//     // -- EDUCATION --
-//     if (sections.education) {
-//         printSectionHeader('Education');
-//         printBodyText(sections.education);
-//     }
-
-//     // -- SKILLS --
-//     if (sections.skills) {
-//         printSectionHeader('Skills');
-//         printBodyText(sections.skills);
-//     }
-
-//     // -- PROJECTS --
-//     if (sections.projects) {
-//         printSectionHeader('Projects');
-//         printBodyText(sections.projects);
-//     }
-
-//     // -- CERTIFICATIONS --
-//     if (sections.certifications) {
-//         printSectionHeader('Certifications & Awards');
-//         printBodyText(sections.certifications);
-//     }
-
-//     // -- LANGUAGES --
-//     if (sections.languages) {
-//         printSectionHeader('Languages');
-//         printBodyText(sections.languages);
-//     }
-
-//     // -- ADDITIONAL SECTIONS --
-//     const standardKeys = ['summary', 'experience', 'education', 'skills', 'contact_info', 'other'];
-//     const otherSections = Object.entries(sections).filter(([key, content]) =>
-//         !standardKeys.includes(key) && content && content.length > 20
-//     );
-
-//     otherSections.forEach(([key, content]) => {
-//         printSectionHeader(key);
-//         printBodyText(content);
-//     });
-
-//     return doc;
-// }
-
-// module.exports = { generateResumePDF };
+// services/pdfGenerator.js
+// Generate ATS-friendly, well-formatted PDF resumes using PDFKit
 
 const PDFDocument = require('pdfkit');
-const fs = require('fs');
 
-function extractSection(text, sectionName) {
+// ─── Colour / style tokens ────────────────────────────────────────────────────
+const COLORS = {
+    primary: '#1a2b4a',   // dark navy — headings
+    accent: '#2563eb',   // blue — rule lines / name
+    bodyText: '#1f2937',   // near-black body
+    mutedText: '#6b7280',   // grey — dates / company
+    bgLight: '#f0f4ff',   // light blue tint (not used on print, kept for reference)
+    white: '#ffffff',
+    rule: '#2563eb'
+};
+
+const FONTS = {
+    regular: 'Helvetica',
+    bold: 'Helvetica-Bold',
+    oblique: 'Helvetica-Oblique'
+};
+
+const MARGIN = 48;
+const PAGE_W = 595.28; // A4 points
+const CONTENT_W = PAGE_W - MARGIN * 2;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Strip markdown bold/italic, clean whitespace */
+function cleanLine(line) {
+    return line
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/_(.*?)_/g, '$1')
+        .replace(/`(.*?)`/g, '$1')
+        .trim();
+}
+
+/** Remove duplicate lines while preserving order */
+function dedup(text) {
     if (!text) return '';
+    const seen = new Set();
+    return text.split('\n').filter(line => {
+        const t = line.trim();
+        if (!t || seen.has(t)) return false;
+        seen.add(t);
+        return true;
+    }).join('\n');
+}
 
-    const lower = text.toLowerCase();
+/**
+ * Try to extract the candidate name from parsed resume data.
+ * Priority: metadata.name → first non-contact line of raw text → fallback.
+ */
+function extractName(metadata, sections) {
+    if (metadata.name && typeof metadata.name === 'string') {
+        return metadata.name.trim();
+    }
 
-    const sectionOrder = [
-        'summary',
-        'experience',
-        'skills',
-        'projects',
-        'education',
-        'certifications',
-        'languages'
-    ];
-
-    const startIndex = lower.indexOf(sectionName);
-    if (startIndex === -1) return '';
-
-    let endIndex = text.length;
-
-    for (let sec of sectionOrder) {
-        if (sec === sectionName) continue;
-
-        const idx = lower.indexOf(sec, startIndex + 10);
-        if (idx !== -1 && idx < endIndex) {
-            endIndex = idx;
+    // Try contact_info section — first short line that looks like a name
+    const contactText = sections.contact_info || '';
+    for (const line of contactText.split('\n')) {
+        const t = line.trim();
+        // A name is typically 2–4 words, no digits, no @ symbol
+        if (t && t.length < 60 && t.split(' ').length >= 2 &&
+            !/\d/.test(t) && !t.includes('@') && !t.toLowerCase().includes('linkedin')) {
+            return t;
         }
     }
 
-    return text.substring(startIndex, endIndex).trim();
-}
-
-function removeDuplicateBlocks(text) {
-    if (!text) return '';
-
-    // 🔥 Detect repeated full blocks
-    const half = Math.floor(text.length / 2);
-    const firstHalf = text.substring(0, half);
-    const secondHalf = text.substring(half);
-
-    if (secondHalf.includes(firstHalf.substring(0, 200))) {
-        text = firstHalf;
+    // Derive from email
+    if (metadata.email) {
+        return metadata.email
+            .split('@')[0]
+            .replace(/[._0-9]/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase())
+            .trim();
     }
 
-    // Then remove duplicate lines (your old logic)
-    const lines = text.split('\n');
-    const seen = new Set();
-    const result = [];
-
-    for (let line of lines) {
-        const clean = line.trim();
-        if (!clean) continue;
-        if (seen.has(clean)) continue;
-
-        seen.add(clean);
-        result.push(line);
-    }
-
-    return result.join('\n');
+    return 'Your Name';
 }
 
-function cleanSectionContent(text, sectionName) {
-    if (!text) return '';
-
-    // Only filter out lines that are PURELY a section header keyword (not content mentioning it)
-    const sectionHeaderRegex = /^(education|skills|projects|certifications?|languages?|experience|summary|profile|objective)$/i;
-
-    const lines = text.split('\n');
-
-    return lines
-        .filter(line => {
-            const trimmed = line.trim();
-            // Remove a line only if it's nothing but a section header word
-            return !sectionHeaderRegex.test(trimmed);
-        })
-        .join('\n');
-}
+// ─── PDF builder ─────────────────────────────────────────────────────────────
 
 function generateResumePDF(resumeData, optimizedExperience) {
-    const doc = new PDFDocument({ margin: 50, font: 'Helvetica' });
+    const doc = new PDFDocument({
+        margin: MARGIN,
+        size: 'A4',
+        info: { Title: 'ATS Optimized Resume', Author: 'Resume ATS Optimizer' }
+    });
 
     const metadata = resumeData.metadata || {};
     const sections = resumeData.sections || {};
 
-    // -- HELPER FUNCTIONS --
+    // ── SECTION HEADER ──────────────────────────────────────────────────────────
+    function sectionHeader(title) {
+        doc.moveDown(0.9);
 
-    const printSectionHeader = (title) => {
-        doc.moveDown(1);
-        doc.fontSize(12).font('Helvetica-Bold').text(title.toUpperCase(), { align: 'left' });
+        // Blue rule above header text
+        const y = doc.y;
+        doc
+            .fillColor(COLORS.accent)
+            .rect(MARGIN, y, CONTENT_W, 1.5)
+            .fill();
 
-        doc.strokeColor('#333333').lineWidth(1)
-            .moveTo(doc.x, doc.y)
-            .lineTo(doc.page.width - 50, doc.y)
-            .stroke();
+        doc.moveDown(0.3);
+        doc
+            .font(FONTS.bold)
+            .fontSize(10.5)
+            .fillColor(COLORS.primary)
+            .text(title.toUpperCase(), MARGIN, doc.y, { width: CONTENT_W });
 
-        doc.moveDown(0.5);
-        doc.font('Helvetica').fontSize(10);
-    };
+        doc.moveDown(0.35);
+        doc.font(FONTS.regular).fontSize(10).fillColor(COLORS.bodyText);
+    }
 
-    const printBodyText = (text) => {
-        if (!text || typeof text !== 'string') return;
+    // ── BODY TEXT renderer ──────────────────────────────────────────────────────
+    function bodyText(raw) {
+        if (!raw || typeof raw !== 'string') return;
 
-        const lines = text.split('\n');
+        const lines = dedup(raw).split('\n');
 
-        lines.forEach(line => {
-            let trimmed = line.trim();
-            if (!trimmed) return;
+        for (const line of lines) {
+            const t = cleanLine(line);
+            if (!t) continue;
 
-            // Strip Markdown bold/italic formatting (AI sometimes outputs **text**)
-            trimmed = trimmed.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
+            // Detect job-title-like lines: ALL CAPS, or "Job Title | Company" patterns
+            const isJobTitle = /^[A-Z][A-Z\s,.'&()\-/]+$/.test(t) && t.split(' ').length <= 8;
 
-            // Bullet detection
-            if (/^[-•*▪–]/.test(trimmed)) {
-                const content = trimmed.replace(/^[-•*▪–\s]+/, '');
-                doc.text(`• ${content}`, { indent: 10, align: 'left' });
+            // Detect date lines: contain  year(s) and possibly month names
+            const isDateLine = /\b(20\d{2}|19\d{2})\b/.test(t) && t.length < 60;
+
+            // Detect bullet
+            const isBullet = /^[-•*▪–►]/.test(t);
+
+            if (isJobTitle && !isBullet) {
+                // Bold job title
+                doc
+                    .font(FONTS.bold)
+                    .fontSize(10.5)
+                    .fillColor(COLORS.primary)
+                    .text(t, MARGIN, doc.y, { width: CONTENT_W });
+                doc.moveDown(0.15);
+                doc.font(FONTS.regular).fontSize(10).fillColor(COLORS.bodyText);
+
+            } else if (isDateLine) {
+                // Muted date / subtitle
+                doc
+                    .font(FONTS.oblique)
+                    .fontSize(9.5)
+                    .fillColor(COLORS.mutedText)
+                    .text(t, MARGIN, doc.y, { width: CONTENT_W });
+                doc.moveDown(0.2);
+                doc.font(FONTS.regular).fontSize(10).fillColor(COLORS.bodyText);
+
+            } else if (isBullet) {
+                const content = cleanLine(t.replace(/^[-•*▪–►\s]+/, ''));
+                doc
+                    .font(FONTS.regular)
+                    .fontSize(10)
+                    .fillColor(COLORS.bodyText)
+                    .text(`• ${content}`, MARGIN + 10, doc.y, {
+                        width: CONTENT_W - 10,
+                        align: 'left'
+                    });
+                doc.moveDown(0.25);
+
             } else {
-                doc.text(trimmed, { align: 'left' });
+                // Normal paragraph
+                doc
+                    .font(FONTS.regular)
+                    .fontSize(10)
+                    .fillColor(COLORS.bodyText)
+                    .text(t, MARGIN, doc.y, { width: CONTENT_W, align: 'left' });
+                doc.moveDown(0.25);
             }
+        }
 
-            doc.moveDown(0.3);
-        });
-
-        doc.moveDown(0.4);
-    };
-
-    // -- HEADER (Contact Info) --
-
-    let name = "Candidate Name";
-
-    // SAFER name logic (no crash risk)
-    if (metadata.name && typeof metadata.name === 'string') {
-        name = metadata.name;
-    } else if (metadata.email) {
-        name = metadata.email
-            .split('@')[0]
-            .replace(/[._0-9]/g, ' ')
-            .replace(/\b\w/g, c => c.toUpperCase());
+        doc.moveDown(0.3);
     }
 
-    doc.fontSize(18).font('Helvetica-Bold').text(name, { align: 'center' });
-    doc.moveDown(0.3);
+    // ── HEADER ──────────────────────────────────────────────────────────────────
+    const name = extractName(metadata, sections);
 
-    const contactLines = [];
+    // Name — large, navy, bold
+    doc
+        .font(FONTS.bold)
+        .fontSize(22)
+        .fillColor(COLORS.primary)
+        .text(name, MARGIN, MARGIN, { align: 'center', width: CONTENT_W });
 
-    if (metadata.email) contactLines.push(metadata.email);
-    if (metadata.phone) contactLines.push(metadata.phone);
-    if (metadata.linkedin) contactLines.push(metadata.linkedin);
+    doc.moveDown(0.4);
 
-    doc.fontSize(10).font('Helvetica')
-        .text(contactLines.join('  |  '), { align: 'center' });
+    // Contact info row
+    const contactParts = [];
+    if (metadata.email) contactParts.push(metadata.email);
+    if (metadata.phone) contactParts.push(metadata.phone);
+    if (metadata.linkedin) contactParts.push(metadata.linkedin);
 
-    doc.moveDown(1.5);
+    if (contactParts.length) {
+        doc
+            .font(FONTS.regular)
+            .fontSize(9)
+            .fillColor(COLORS.mutedText)
+            .text(contactParts.join('   |   '), MARGIN, doc.y, {
+                width: CONTENT_W,
+                align: 'center'
+            });
+        doc.moveDown(0.3);
+    }
 
-    // -- SUMMARY --
+    // Full-width accent rule under header
+    doc
+        .fillColor(COLORS.accent)
+        .rect(MARGIN, doc.y, CONTENT_W, 2)
+        .fill();
+
+    doc.moveDown(0.6);
+    doc.font(FONTS.regular).fontSize(10).fillColor(COLORS.bodyText);
+
+    // ── PROFESSIONAL SUMMARY ────────────────────────────────────────────────────
     if (sections.summary) {
-        printSectionHeader('Professional Summary');
-        printBodyText(removeDuplicateBlocks(sections.summary));
+        sectionHeader('Professional Summary');
+        bodyText(sections.summary);
     }
 
-    // -- EXPERIENCE --
-    printSectionHeader('Professional Experience');
+    // ── EXPERIENCE (uses AI-optimized version if available) ──────────────────
+    if (optimizedExperience) {
+        // If the original resume had an experience section, label it explicitly.
+        // If not (full-resume optimization), the AI output already contains section headers.
+        const hadExperience = !!(sections.experience);
+        if (hadExperience) {
+            sectionHeader('Professional Experience');
+        }
+        bodyText(optimizedExperience);
+    } else if (sections.experience) {
+        sectionHeader('Professional Experience');
+        bodyText(sections.experience);
+    }
+    // If neither exists simply skip — other sections cover the content.
 
-    let xpText = optimizedExperience || sections.experience || 'No experience section found.';
-    xpText = removeDuplicateBlocks(xpText);
-    printBodyText(xpText);
-
-    // -- EDUCATION --
+    // ── EDUCATION ───────────────────────────────────────────────────────────────
     if (sections.education) {
-        printSectionHeader('Education');
-        let eduText = removeDuplicateBlocks(sections.education);
-        eduText = cleanSectionContent(eduText, 'education');
-
-        printBodyText(eduText);
+        sectionHeader('Education');
+        bodyText(dedup(sections.education));
     }
 
-    // -- SKILLS --
+    // ── SKILLS ──────────────────────────────────────────────────────────────────
     if (sections.skills) {
-        printSectionHeader('Skills');
-        let skillsText = removeDuplicateBlocks(sections.skills);
-        skillsText = cleanSectionContent(skillsText, 'skills');
-
-        printBodyText(skillsText);
+        sectionHeader('Skills');
+        // Skills are often a long comma-separated string — wrap nicely
+        const skillText = dedup(sections.skills);
+        doc
+            .font(FONTS.regular)
+            .fontSize(10)
+            .fillColor(COLORS.bodyText)
+            .text(skillText, MARGIN, doc.y, { width: CONTENT_W, align: 'left' });
+        doc.moveDown(0.5);
     }
 
-    // -- PROJECTS --
+    // ── PROJECTS ─────────────────────────────────────────────────────────────────
     if (sections.projects) {
-        printSectionHeader('Projects');
-        let projectsText = removeDuplicateBlocks(sections.projects);
-        projectsText = cleanSectionContent(projectsText, 'projects');
-
-        printBodyText(projectsText);
+        sectionHeader('Projects');
+        bodyText(dedup(sections.projects));
     }
 
-    // -- CERTIFICATIONS --
+    // ── CERTIFICATIONS ───────────────────────────────────────────────────────────
     if (sections.certifications) {
-        printSectionHeader('Certifications & Awards');
-        let certText = removeDuplicateBlocks(sections.certifications);
-        certText = cleanSectionContent(certText, 'certifications');
-
-        printBodyText(certText);
+        sectionHeader('Certifications & Awards');
+        bodyText(dedup(sections.certifications));
     }
 
-    // -- LANGUAGES --
+    // ── LANGUAGES ────────────────────────────────────────────────────────────────
     if (sections.languages) {
-        printSectionHeader('Languages');
-        let langText = removeDuplicateBlocks(sections.languages);
-        langText = cleanSectionContent(langText, 'languages');
-
-        printBodyText(langText);
+        sectionHeader('Languages');
+        bodyText(dedup(sections.languages));
     }
 
-    // -- ADDITIONAL SECTIONS --
-    const standardKeys = ['summary', 'experience', 'education', 'skills', 'contact_info', 'other'];
-
-    const otherSections = Object.entries(sections).filter(([key, content]) =>
-        !standardKeys.includes(key) && content && content.length > 20
-    );
-
-    otherSections.forEach(([key, content]) => {
-        printSectionHeader(key);
-        let otherText = removeDuplicateBlocks(content);
-        otherText = cleanSectionContent(otherText, key);
-
-        printBodyText(otherText);
-    });
+    // ── ANY OTHER SECTIONS ──────────────────────────────────────────────────────
+    const SKIP_KEYS = new Set(['summary', 'experience', 'education', 'skills',
+        'contact_info', 'other', 'projects', 'certifications', 'languages']);
+    for (const [key, content] of Object.entries(sections)) {
+        if (SKIP_KEYS.has(key) || !content || content.length < 20) continue;
+        sectionHeader(key.replace(/_/g, ' '));
+        bodyText(dedup(content));
+    }
 
     return doc;
 }
