@@ -1,4 +1,0 @@
-John Doe
-Email: john@example.com
-EXPERIENCE
-Dev at Tech
