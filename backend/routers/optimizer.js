@@ -1,8 +1,7 @@
-
-
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { requireAuth, optionalAuth } = require('../core/security');
+const { guestDownloadLimit, incrementGuestDownload } = require('../core/guestLimiter');
 const { Analysis } = require('../models/analysis');
 const { Resume } = require('../models/resume');
 const { OptimizedResume } = require('../models/optimized_resume');
@@ -47,27 +46,32 @@ router.post('/rewrite', optionalAuth, [
       return res.status(403).json({ detail: 'Access denied' });
     }
 
-    // Get text to rewrite
+    // Get text to rewrite — priority: manual input > sections.experience > full parsed_text
     let textToRewrite = experience_text;
-    if (!textToRewrite) {
-      // Try to fetch from Resume
-      if (analysis.resume_id) {
-        const resume = await Resume.findByPk(analysis.resume_id);
-        if (resume && resume.sections && resume.sections.experience) {
+    let isFullResume = false;
+    if (!textToRewrite && analysis.resume_id) {
+      const resume = await Resume.findByPk(analysis.resume_id);
+      if (resume) {
+        if (resume.sections && resume.sections.experience) {
           textToRewrite = resume.sections.experience;
+        } else {
+          // No experience section found — optimize entire resume content
+          textToRewrite = resume.parsed_text;
+          isFullResume = true;
         }
       }
     }
 
     if (!textToRewrite) {
-      return res.status(400).json({ detail: 'Experience text is required (could not auto-extract associated resume section).' });
+      return res.status(400).json({ detail: 'Could not find resume text to optimize. Please try re-uploading your resume.' });
     }
 
-    // Rewrite using Claude/Gemini
+    // Rewrite using Gemini
     const rewritten = await aiService.rewriteExperience(
       textToRewrite,
       analysis.job_description,
-      analysis.missing_keywords || []
+      analysis.missing_keywords || [],
+      isFullResume
     );
 
     // Save optimized resume
@@ -134,7 +138,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 });
 
 // POST /api/optimizer/download-pdf
-router.post('/download-pdf', optionalAuth, [
+router.post('/download-pdf', optionalAuth, guestDownloadLimit, [
   body('analysis_id').notEmpty().withMessage('analysis_id is required')
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -176,6 +180,9 @@ router.post('/download-pdf', optionalAuth, [
 
     // Generate PDF
     const doc = generateResumePDF(resume, experienceContent);
+
+    // Increment guest download counter before streaming (count the attempt)
+    incrementGuestDownload(req);
 
     // Set headers
     res.setHeader('Content-Type', 'application/pdf');

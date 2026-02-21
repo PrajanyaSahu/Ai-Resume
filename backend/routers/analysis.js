@@ -10,7 +10,7 @@ const { validationResult } = require('express-validator');
 
 const config = require('../core/config');
 const { requireAuth, optionalAuth } = require('../core/security');
-const { guestAnalysisLimit, incrementGuestUsage, getGuestRemaining } = require('../core/guestLimiter');
+const { guestAnalysisLimit, incrementGuestUsage, getGuestRemaining, getGuestDownloadRemaining } = require('../core/guestLimiter');
 const { Resume } = require('../models/resume');
 const { Analysis } = require('../models/analysis');
 const { UsageLimit } = require('../models/usage_limit');
@@ -157,6 +157,7 @@ router.post('/complete', optionalAuth, guestAnalysisLimit, upload.single('resume
         } : {
           guest: true,
           analyses_remaining: guestRemaining,
+          downloads_remaining: getGuestDownloadRemaining(req),
           note: guestRemaining === 0
             ? 'You have used all your free analyses. Sign up for unlimited access!'
             : `You have ${guestRemaining} free analysis${guestRemaining === 1 ? '' : 'es'} remaining today.`
